@@ -1,0 +1,37 @@
+
+name: A GURU APK Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract Android Project
+        run: |
+          unzip -o *.zip -d project
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build APK
+        run: |
+          cd project
+          find . -name gradlew -exec chmod +x {} \;
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: A-GURU-APK
+          path: project/**/build/outputs/apk/debug/*.apk
+
+
