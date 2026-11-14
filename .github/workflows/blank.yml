@@ -9,28 +9,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Extract Android Project
         run: |
-          unzip -o *.zip -d project
+          mkdir -p project
+          ZIP_FILE=$(find . -maxdepth 1 -type f -iname "*.zip" | head -n 1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "ZIP file not found"
+            exit 1
+          fi
+          unzip -o "$ZIP_FILE" -d project
 
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17
+          java-version: '17'
 
+      - name: Build APK
+        run: |
+          GRADLEW=$(find project -type f -name gradlew -print -quit)
+          if [ -z "$GRADLEW" ]; then
+            echo "gradlew not found"
+            find project -maxdepth 4 -type f
+            exit 1
+          fi
+          ROOT_DIR=$(dirname "$GRADLEW")
+          chmod +x "$GRADLEW"
+          cd "$ROOT_DIR"
+          ./gradlew assembleDebug
 
-
-        - name: Build APK
-          run: |
-            GRADLEW=$(find project -type f -name gradlew | head -n 1)
-            if [ -z "$GRADLEW" ]; then
-              echo "gradlew not found"
-              exit 1
-            fi
-            chmod +x "$GRADLEW"
-            cd "$(dirname "$GRADLEW")"
-            ./gradlew assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: A-GURU-APK
+          path: project/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
